@@ -41,10 +41,10 @@ Simplest example:
 
 That would be (pretty much) the whole story, except... Firefox doesn't support MP3s. So lowLag.js borrows the concept of a sound group - a set of identical but different format sound URLs that you label and then play via a tag. All 3 modes support this (more or less: Webkit just plays the first one in the group, but you don't have to change any code.) Sample:
 
-`lowLag.init();`  
+`lowLag.init({"urlPrefix":"sounds/"});`  
 `lowLag.load(["pluck.mp3","pluck.ogg"],"pluck");`  
 `lowLag.play("pluck");`  
-Including an mp3 and ogg version gets you very high percentage coverage across browsers.
+Including an mp3 and ogg version gets you very high percentage coverage across browsers.  (That was also example of using configuration options to `lowLag.init()`.)
 
 Command Options
 ---------------
