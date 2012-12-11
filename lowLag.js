@@ -131,7 +131,7 @@ var lowLag = new function(){
 //or the first url 
 	this.getTagFromURL = function(url,tag){
 		if(tag != undefined) return tag;
-		return lowLag.getSingleURL();
+		return lowLag.getSingleURL(url);
 	}
 	this.getSingleURL = function(urls){
 		if(typeof(urls) == "string") return urls;
