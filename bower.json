@@ -1,0 +1,18 @@
+{
+  "name": "low-lag-audio",
+  "version": "1.0.0",
+  "homepage": "http://lowlag.alienbill.com",
+  "authors": [
+    "kirkjerk <https://github.com/kirkjerk>"
+  ],
+  "description": "a simple wrapper for low-latency, high-compatibility, html5-friendly audio",
+  "main": "lowLag.js",
+  "keywords": [
+    "low",
+    "lag",
+    "lowlag",
+    "audio",
+    "html5"
+  ],
+  "license": "MIT"
+}
