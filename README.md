@@ -17,7 +17,7 @@ You need two files:
 *   The .js file lowLag.js
 *   The unzipped contents of sm2.zip
 
-(You also need jQuery, or a link to it.) I recommend unzipping that into the directory your html file is in. (So that the relative paths sm2/js/ and sm2/swf are available to the script...)
+I recommend unzipping that into the directory your html file is in. (So that the relative paths sm2/js/ and sm2/swf are available to the script...)
 
 Unzip the sm2.zip file and move things so its contents can be accessed by the html5 page. Do similar for the file lowLag.js.
 
@@ -25,9 +25,6 @@ Add this to the top of your html file:
 
 `<script src="/path/to/lowLag.js"></script>`  
 `<script src="/path/to/soundmanager2.js"></script>`  
-`<script src="http://code.jquery.com/jquery-1.8.0.min.js"></script>`  
-
-(You don't need the final line if you are already using jQuery on your page.)
 
 Finally, if the swf directory is something other than "sm2/swf" relative to your html file, you sill have to set the `sm2url` parameter when you call lowLag.init().
 
@@ -45,6 +42,8 @@ That would be (pretty much) the whole story, except... Firefox doesn't support M
 `lowLag.load(["pluck.mp3","pluck.ogg"],"pluck");`  
 `lowLag.play("pluck");`  
 Including an mp3 and ogg version gets you very high percentage coverage across browsers.  (That was also example of using configuration options to `lowLag.init()`.)
+
+Note: lowLag contains a convenience version of the classic jQuery "ready" function. If you have a page without jQuery, you can put your custom function calling `lowLag.init()` and `.load()` into a call to `lowLag.ready()`. 
 
 Command Options
 ---------------
