@@ -15,11 +15,47 @@ var lowLag = new function(){
 
 	this.debug = "console";
 
+	this.divLowLag = null;
+	this.divDebug = null;
+	
+	this.createElement = function(elemType,attribs){
+		 var elem = document.createElement(elemType);
+		 if(attribs){
+			for(var key in attribs){
+				elem.setAttribute(key,attribs[key]);
+			}
+		 }
+		 return elem;
+	};
+	this.safelyRemoveElement = function(elem){
+		if(elem) elem.parentNode.removeChild(elem);
+	};
+	this.safelyRemoveElementById = function(id){
+		this.safelyRemoveElement(document.getElementById(id));
+	};
+	
+	this.ready = function ready(fn) {
+		if (document.readyState != 'loading'){
+		  fn();
+		} else if (document.addEventListener) {
+		  document.addEventListener('DOMContentLoaded', fn);
+		} else {
+		  document.attachEvent('onreadystatechange', function() {
+		    if (document.readyState != 'loading')
+		      fn();
+		  });
+		}
+	};
+	
 
 	this.init = function(config){
-
-		$("#lowLag").remove();
-		$("body").append("<div id='lowLag'></div>");
+		//var divLowLag = document.getElementById("lowLag");
+		this.safelyRemoveElement(this.divLowLag);
+		this.divLowLag = this.createElement("div",{"id":"lowLag"});
+		document.body.appendChild(this.divLowLag);
+		
+	
+		
 		var force = undefined;
 		if(config != undefined){
 			if(config['force'] != undefined){
@@ -39,6 +75,13 @@ var lowLag = new function(){
 			} 
 
 		}
+		
+		if(lowLag.debug == "screen" || lowLag.debug == "both"){
+			lowLag.divDebug = lowLag.createElement("pre");
+			lowLag.divLowLag.appendChild(lowLag.divDebug);
+			
+		}
+		
 
 		var format = "sm2";
 		if(force != undefined) format = force;
@@ -119,11 +162,6 @@ var lowLag = new function(){
 
 		soundManager.play(tag);
 	}
-
-	
-
-
-
 
 
 
@@ -220,18 +258,16 @@ lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
 		lowLag.audioTagNameToElement[tag] = id;
 
 lowLag.msg('audioTag loading '+urls+' as tag ' + tag);
-
-		var buf = "";
-		buf += '<audio id="'+id+'" preload="auto" autobuffer>';
-
+		var audioElem = this.createElement("audio",{"id":id, "preload":"auto", "autobuffer":"autobuffer"})
+		
 		for(var i = 0; i < urls.length; i++){
 			var url = urls[i];
 			var type = "audio/"+lowLag.getExtension(url);
-
-			buf += '  <source src="'+lowLag.soundUrl+url+'" type="'+type+'" />';
+			var sourceElem = this.createElement("source",{"src":lowLag.soundUrl+url,"type":type});
+			audioElem.appendChild(sourceElem);
 		}
-		buf += '</audio>';
-		$("#lowLag").append(buf);
+		
+		document.body.appendChild(audioElem);
 	}
 
 	this.playSoundAudioTag = function(tag){
@@ -239,14 +275,15 @@ lowLag.msg('audioTag loading '+urls+' as tag ' + tag);
 
 		var modelId = lowLag.audioTagNameToElement[tag];
 		var cloneId = "lowLagCloneElem_"+lowLag.audioTagID++;
-		$('#'+modelId).clone()
-			.attr('id', cloneId)
-			.appendTo('#lowLag');
-		var cloneElem = document.getElementById(cloneId);
-lowLag.msg(tag);
+		
+		var modelElem = document.getElementById(modelId);
+		var cloneElem = modelElem.cloneNode(true);
+		cloneElem.setAttribute("id",cloneId);
+		this.divLowLag.appendChild(cloneElem);
+		lowLag.msg(tag);
 		if(lowLag.audioTagTimeToLive != -1){
 			setTimeout(function(){
-					$('#'+cloneId).remove();
+					lowLag.safelyRemoveElement(cloneElem);
 				},lowLag.audioTagTimeToLive);
 		}
 		cloneElem.play();
@@ -263,10 +300,10 @@ lowLag.msg(tag);
 	this.msg = function(m){
 		m = "-- lowLag "+m;
 		if(lowLag.debug == 'both' || lowLag.debug == 'console'){
-			console.log(m+"<br>");
+			console.log(m);
 		}
-		if(lowLag.debug == 'both' || lowLag.debug == 'screen'){
-			$('#lowLag').append(m+"<br>");
+		if(lowLag.divDebug){
+			lowLag.divDebug.innerHTML += m+"\n";			
 		}
 	}
 
