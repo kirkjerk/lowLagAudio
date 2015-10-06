@@ -7,6 +7,11 @@ var lowLag = new function(){
 	this.load = this.showNeedInit;
 	this.play = this.showNeedInit;
 
+	this.useSuspension = false;
+	this.suspendDelay = 10000; // ten seconds
+	this.suspendTimeout = null;
+	this.suspended = false;
+
 	this.audioTagTimeToLive = 5000;
 
 	this.sm2url = 'sm2/swf/';
@@ -73,7 +78,12 @@ var lowLag = new function(){
 			if(config['debug'] != undefined){
 				lowLag.debug = config['debug'];
 			} 
-
+			if (config['useSuspension'] != undefined) {
+				lowLag.useSuspension = config['useSuspension'];
+			}
+			if (config['suspendDelay'] != undefined) {
+				lowLag.suspendDelay = config['suspendDelay'];
+			}
 		}
 		
 		if(lowLag.debug == "screen" || lowLag.debug == "both"){
@@ -96,6 +106,10 @@ var lowLag = new function(){
 				this.load= this.loadSoundWebkitAudio;
 				this.play = this.playSoundWebkitAudio;
 				this.webkitAudioContext = new webkitAudioContext();
+				if (this.useSuspension &= ('suspend' in lowLag.webkitAudioContext && 'onended' in lowLag.webkitAudioContext.createBufferSource())) {
+					this.playingQueue = [];
+					this.suspendPlaybackWebkitAudio();
+				}
 			break;
 			case 'audioTag':
 				this.msg("init audioTag");
@@ -142,10 +156,10 @@ var lowLag = new function(){
 		}
 
 		soundManager.createSound({
-      			id: tag,
-			autoLoad: true, 
-		      url: urls
-   		 });
+			id: tag,
+			autoLoad: true,
+			url: urls
+		});
 	};
 
 	this.sm2Ready = function(){
@@ -193,14 +207,14 @@ var lowLag = new function(){
 	this.loadSoundWebkitAudio = function(urls,tag){
 		var url = lowLag.getSingleURL(urls);
 		var tag = lowLag.getTagFromURL (urls,tag);
-lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
+		lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
 		var request = new XMLHttpRequest();
 		request.open('GET', lowLag.soundUrl + url, true);
 		request.responseType = 'arraybuffer';
 
 		// Decode asynchronously
 		request.onload = function() {
-		    lowLag.webkitAudioContext.decodeAudioData(request.response, function(buffer) {
+			lowLag.webkitAudioContext.decodeAudioData(request.response, function(buffer) {
 				lowLag.webkitAudioBuffers[tag] = buffer;
 				
 				if(lowLag.webkitPendingRequest[tag]){ //a request might have come in, try playing it now
@@ -223,19 +237,52 @@ lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
 			return;
 		}
 		var context = lowLag.webkitAudioContext;
+		if (this.useSuspension && this.suspended) {
+			this.resumePlaybackWebkitAudio(); // Resume playback
+		}
 		var source = context.createBufferSource(); // creates a sound source
 		source.buffer = buffer;                    // tell the source which sound to play
 		source.connect(context.destination);       // connect the source to the context's destination (the speakers)
 		if (typeof(source.noteOn) == "function") {
 			source.noteOn(0);                          // play the source now, using noteOn
 		} else {
+			if (this.useSuspension) {
+				this.playingQueue.push(tag);
+				source.onended = function(e) {
+					lowLag.hndlOnEndedWebkitAudio(tag, e);
+				}
+			}
 			source.start();				// play the source now, using start
 		}
 	}
 
+	this.hndlOnEndedWebkitAudio = function(tag, e){
+		for (var i = 0; i < this.playingQueue.length; i++ ) {
+			if (this.playingQueue[i] == tag) {
+				this.playingQueue.splice(i,1);
+				break;
+			}
+		}
+		if (!this.playingQueue.length) {
+			this.suspendPlaybackWebkitAudio();
+		}
+	}
 
+	this.resumePlaybackWebkitAudio = function(){
+		this.webkitAudioContext.resume();
+		this.suspended = false;
+	}
 
-
+	this.suspendPlaybackWebkitAudio = function(){
+		if (this.suspendTimeout) {
+			clearTimeout(this.suspendTimeout);
+		}
+		this.suspendTimeout = setTimeout(function(){
+			lowLag.webkitAudioContext.suspend();
+			lowLag.suspended = true;
+			lowLag.suspendTimeout = null;
+		}, this.suspendDelay);
+	}
 
 
 
@@ -257,7 +304,7 @@ lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
 
 		lowLag.audioTagNameToElement[tag] = id;
 
-lowLag.msg('audioTag loading '+urls+' as tag ' + tag);
+		lowLag.msg('audioTag loading '+urls+' as tag ' + tag);
 		var audioElem = this.createElement("audio",{"id":id, "preload":"auto", "autobuffer":"autobuffer"})
 		
 		for(var i = 0; i < urls.length; i++){
@@ -287,7 +334,7 @@ lowLag.msg('audioTag loading '+urls+' as tag ' + tag);
 				},lowLag.audioTagTimeToLive);
 		}
 		cloneElem.play();
-	    
+		
 	}
 
 
