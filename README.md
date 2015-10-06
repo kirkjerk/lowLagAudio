@@ -50,6 +50,8 @@ Command Options
 *`lowLag.init()`* takes one optional argument, a hash of configuration options:
 
 *   `force` -- Value can be 'webkitAudio', 'audioTag', or 'sm2'. With no argument, lowLag.js will pick the best for the current browser (webkit for Browser that support that as a feature, the <audio> tag if it detects Firefox (preferred over SoundManager2 for performance reasons) and finally SoundManager2, which will first try Flash and fallback to the <audio> tag.)
+*   `useSuspension` -- When using the Web Audio API or 'webkitAudio' this flag allows the audio context to shut itself down - saving power and addressing issues with certain mobile devices - after `suspendTimeout` milliseconds of disuse.
+*   `suspendDelay` -- How many milliseconds to wait before shutting down the audio context if `useSuspension` is in force.
 *   `urlPrefix` -- The value of this key will be directly prefixed to URLs when loading sound files. (Default "", i.e. same directory as the html file)
 *   `audioTagTimeToLive` -- To allow for simultaneous sounds, <audio> tags are cloned and then destroyed. This value is the time (in millis) before the file is destroyed. Default is 5000, or 5 seconds: if your clips are longer than that you may wish to adjust this value accordingly.
 *   `sm2url` -- 
