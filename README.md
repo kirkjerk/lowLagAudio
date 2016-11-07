@@ -59,7 +59,7 @@ Location of the directory for Soundmanager2's .swf files... defaults to 'sm2/swf
 *   `debug` -- 
 Values can be 'console', 'page', 'both' or 'none'-- determines where information gets sent. Default to 'console'.
 
-`lowLag.load(urls,tag)` -- `urls` can be a string (containing a single sound file URL) or an array (containing a group of the same sound in different file formats) `tag` is optional: if present, it will be used by the "play()" command. If absent, `urls` as a string will be used, or the first entry in the urls array. (Note: webkit Audio will only use the first file in a urls group, so order things accordingly. (i.e. start with .mp3))
+`lowLag.load(urls,tag)` -- `urls` can be a string (containing a single sound file URL) or an array (containing a group of the same sound in different file formats) `tag` is optional: if present, it will be used by the "play()" command. If absent, `urls` as a string will be used, or the first entry in the urls array. 
 
 `lowLag.play(tag)` -- Play the sound associated with this tag.
 
