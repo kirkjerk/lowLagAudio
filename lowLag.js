@@ -96,19 +96,19 @@ var lowLag = new function(){
 		var format = "sm2";
 		if(force != undefined) format = force;
 		else {
-			if(typeof(webkitAudioContext) != "undefined") format = 'webkitAudio';
+			if(window.AudioContext || window.webkitAudioContext ) format = 'audioContext';
 			else if(navigator.userAgent.indexOf("Firefox")!=-1) format = 'audioTag';
 		}
 		switch(format){
-			case 'webkitAudio':
+			case 'audioContext':
 
-				this.msg("init webkitAudio");
-				this.load= this.loadSoundWebkitAudio;
-				this.play = this.playSoundWebkitAudio;
-				this.webkitAudioContext = new webkitAudioContext();
-				if (this.useSuspension &= ('suspend' in lowLag.webkitAudioContext && 'onended' in lowLag.webkitAudioContext.createBufferSource())) {
+				this.msg("init audioContext");
+				this.load= this.loadSoundAudioContext;
+				this.play = this.playSoundAudioContext;
+				this.audioContext = new(window.AudioContext || window.webkitAudioContext)();
+				if (this.useSuspension &= ('suspend' in lowLag.audioContext && 'onended' in lowLag.audioContext.createBufferSource())) {
 					this.playingQueue = [];
-					this.suspendPlaybackWebkitAudio();
+					this.suspendPlaybackAudioContext();
 				}
 			break;
 			case 'audioTag':
@@ -198,47 +198,60 @@ var lowLag = new function(){
 
 
 
-	this.webkitPendingRequest = {};
+this.audioContextPendingRequest = {};
 
 
-	this.webkitAudioContext = undefined;
-	this.webkitAudioBuffers = {};
+	this.audioContext = undefined;
+	this.audioBuffers = {};
 
-	this.loadSoundWebkitAudio = function(urls,tag){
+	this.loadSoundAudioContext = function(urls,tag,urlPrefix){ //urlPrefix is only set when called recursively
+		if(!urlPrefix)// save the urlPrefix because lowLag.soundUrl my get overwritten if 1) chrome's async AudioContext is called and 2) the user tries to load more than one sound
+			urlPrefix=lowLag.soundUrl;
 		var url = lowLag.getSingleURL(urls);
 		var tag = lowLag.getTagFromURL (urls,tag);
-		lowLag.msg('webkitAudio loading '+url+' as tag ' + tag);
+		lowLag.msg('webkit/chrome audio loading '+ urlPrefix +url+' as tag ' + tag);
 		var request = new XMLHttpRequest();
-		request.open('GET', lowLag.soundUrl + url, true);
+		request.open('GET', urlPrefix + url, true);
 		request.responseType = 'arraybuffer';
 
 		// Decode asynchronously
 		request.onload = function() {
-			lowLag.webkitAudioContext.decodeAudioData(request.response, function(buffer) {
-				lowLag.webkitAudioBuffers[tag] = buffer;
-				
-				if(lowLag.webkitPendingRequest[tag]){ //a request might have come in, try playing it now
-					lowLag.playSoundWebkitAudio(tag);
-				}
-			}, lowLag.errorLoadWebkitAudtioFile);
+		  var retVal = lowLag.audioContext.decodeAudioData(request.response, successLoadAudioFile, errorLoadAudioFile);
+			//Newer versions of audioContext return a promise, which could throw a DOMException
+			if(retVal && typeof retVal.then == 'function'){
+				retVal.then(successLoadAudioFile).catch(function(e) {
+					errorLoadAudioFile(e);
+					urls.shift(); //remove the first url from the array
+					if(urls.length>0){
+						lowLag.loadSoundAudioContext(urls,tag,urlPrefix); //try the next url
+					}
+				});
+			}
 		};
 		request.send();
+
+		function successLoadAudioFile (buffer) {
+			lowLag.audioBuffers[tag] = buffer;				
+			if(lowLag.audioContextPendingRequest[tag]){ //a request might have come in, try playing it now
+				lowLag.playSoundAudioContext(tag);
+			}
+		}
+
+		function errorLoadAudioFile (e){
+			lowLag.msg("Error loading webkit/chrome audio: "+e);	
+		}
 	}
 
-	this.errorLoadWebkitAudtioFile = function(e){
-		lowLag.msg("Error loading webkitAudio: "+e);
-	}
-
-	this.playSoundWebkitAudio= function(tag){
-		lowLag.msg("playSoundWebkitAudio "+tag);
-		var buffer = lowLag.webkitAudioBuffers[tag];
+	this.playSoundAudioContext= function(tag){
+		lowLag.msg("playSoundAudioContext "+tag);
+		var buffer = lowLag.audioBuffers[tag];
 		if(buffer == undefined) { //possibly not loaded; put in a request to play onload
-			lowLag.webkitPendingRequest[tag] = true;
+			lowLag.audioContextPendingRequest[tag] = true;
 			return;
 		}
-		var context = lowLag.webkitAudioContext;
+		var context = lowLag.audioContext;
 		if (this.useSuspension && this.suspended) {
-			this.resumePlaybackWebkitAudio(); // Resume playback
+			this.resumePlaybackAudioContext(); // Resume playback
 		}
 		var source = context.createBufferSource(); // creates a sound source
 		source.buffer = buffer;                    // tell the source which sound to play
@@ -249,14 +262,14 @@ var lowLag = new function(){
 			if (this.useSuspension) {
 				this.playingQueue.push(tag);
 				source.onended = function(e) {
-					lowLag.hndlOnEndedWebkitAudio(tag, e);
+					lowLag.hndlOnEndedAudioContext(tag, e);
 				}
 			}
 			source.start();				// play the source now, using start
 		}
 	}
 
-	this.hndlOnEndedWebkitAudio = function(tag, e){
+	this.hndlOnEndedAudioContext = function(tag, e){
 		for (var i = 0; i < this.playingQueue.length; i++ ) {
 			if (this.playingQueue[i] == tag) {
 				this.playingQueue.splice(i,1);
@@ -264,26 +277,25 @@ var lowLag = new function(){
 			}
 		}
 		if (!this.playingQueue.length) {
-			this.suspendPlaybackWebkitAudio();
+			this.suspendPlaybackAudioContext();
 		}
 	}
 
-	this.resumePlaybackWebkitAudio = function(){
-		this.webkitAudioContext.resume();
+	this.resumePlaybackAudioContext = function(){
+		this.audioContext.resume();
 		this.suspended = false;
 	}
 
-	this.suspendPlaybackWebkitAudio = function(){
+	this.suspendPlaybackAudioContext = function(){
 		if (this.suspendTimeout) {
 			clearTimeout(this.suspendTimeout);
 		}
 		this.suspendTimeout = setTimeout(function(){
-			lowLag.webkitAudioContext.suspend();
+			lowLag.audioContext.suspend();
 			lowLag.suspended = true;
 			lowLag.suspendTimeout = null;
 		}, this.suspendDelay);
 	}
-
 
 
 
