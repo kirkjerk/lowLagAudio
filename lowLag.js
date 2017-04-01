@@ -105,7 +105,8 @@ var lowLag = new function(){
 				this.msg("init audioContext");
 				this.load= this.loadSoundAudioContext;
 				this.play = this.playSoundAudioContext;
-				this.audioContext = new(window.AudioContext || window.webkitAudioContext)();
+				if(!this.audioContext)
+					this.audioContext = new(window.AudioContext || window.webkitAudioContext)();
 				if (this.useSuspension &= ('suspend' in lowLag.audioContext && 'onended' in lowLag.audioContext.createBufferSource())) {
 					this.playingQueue = [];
 					this.suspendPlaybackAudioContext();
